@@ -1,0 +1,176 @@
+---
+title: "Project2"
+author: "Joyce Aldrich"
+date: "2022-10-09"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# example 1. loading csv into r
+```{r}
+library(readr)
+city_weekly_temperature_wide <-read_csv(file = '/Users/joycealdrich/Documents/SPS Data Science/Data 607/Project_2/city_week_temp.csv')
+head(city_weekly_temperature_wide)
+```
+
+# reshaping data to long format
+```{r}
+library(tidyr)
+city_weekly_temperature_long <- city_weekly_temperature_wide %>%
+gather(day,temperature, -c(city))
+head(city_weekly_temperature_long)
+
+```
+# adding the average temperature for each city 
+```{r}
+library(dplyr)
+city_weekly_temperature_long <- city_weekly_temperature_long %>%
+  group_by(city) %>%
+  mutate(average_temperature = mean(temperature),
+         temperature_diff = temperature - mean(temperature)
+         )
+head(city_weekly_temperature_long)
+```
+
+# using ggplot geom_point to see each city's weekly temperature
+```{r}
+library(ggplot2)
+ggplot(data= city_weekly_temperature_long ) +
+  geom_point(mapping = aes(x=day, y=temperature, color=city)) +
+  facet_wrap(~city, nrow=1)
+```
+
+# compare 6 cities' weekly temperature and place the overall mean in the graph  
+```{r}
+library(tidyverse)
+library(ggplot2)
+
+city_weekly_temperature_long %>%
+  ggplot(aes(x=day, y=temperature,group=city,colour=city))+
+  geom_point(size =3, alpha=0.3)+
+  geom_line(size =0.5)+
+  geom_hline(aes(yintercept=mean(temperature)))+
+  theme_minimal()+
+  labs(title ="Weekly Temperature of Cities")
+  
+```
+
+# example 2: 
+# loading cvs file into r
+```{r}
+
+library(readr)
+exam_results <-read_csv(file = '/Users/joycealdrich/Documents/SPS Data Science/Data 607/Project_2/exam_result.csv')
+head(exam_results)
+```
+
+# reshaping to the long format
+```{r}
+library(tidyr)
+exam_results_long<- exam_results %>%
+  gather(exam,score, -c(Student,Gender))
+head(exam_results_long)
+```
+# adding score_average_by_student col & removing the na row
+```{r}
+exam_results_long <- exam_results_long %>%
+  group_by(Student) %>%
+  filter(!is.na(score)) %>%
+  mutate(Score_average_by_student = mean(score),
+         )
+head(exam_results_long)
+```
+# adding max_socre, min_score ,core_average_by_exam col 
+```{r}
+exam_results_long <- exam_results_long %>%
+  group_by(exam) %>%
+  filter(!is.na(score)) %>%
+  mutate(Max_score_by_exam = max(score),
+         Min_score_by_exam = min(score),
+         average_score_by_exam = mean (score)
+         )
+head(exam_results_long)
+  
+```
+# compare each exam score by each student and place an overall mean in the graph  
+```{r}
+library(tidyverse)
+library(ggplot2)
+
+exam_results_long %>%
+  ggplot(aes(x=exam, y=score, group=Student, colour=Student))+
+  geom_point(size =3, alpha=0.3)+
+  geom_hline(aes(yintercept=mean(score)))+
+  theme_minimal()+
+  labs(title ="score of three exams")
+  
+```
+
+# example 3:
+# loading excel(format download) file into r
+```{r}
+library(readxl)
+gdp_by_county <- read_excel("gdp_by_county.xlsx")
+head(gdp_by_county)
+
+```
+
+# updating the col name and remove NA rows
+```{r}
+names(gdp_by_county)[6]<-paste("2012")
+names(gdp_by_county)[7]<-paste("2013")
+names(gdp_by_county)[8]<-paste("2014")
+names(gdp_by_county)[9]<-paste("2015")
+
+gdp_by_county <- gdp_by_county[-c(1,2),]
+head(gdp_by_county)
+```
+# keeping consolidation GDP amount
+```{r}
+gdp_by_county_wide<- gdp_by_county %>%
+filter(LineCode == 1) 
+head(gdp_by_county_wide)
+```
+
+# reshaping to long data format
+```{r}
+library(tidyr)
+gdp_by_county_long <- gdp_by_county_wide %>%
+  gather(year, amount, -c(1:5))
+head(gdp_by_county_long)
+```
+# random select 6 sample counties in AL state 
+```{r}
+gdp_by_county_long_1 <- gdp_by_county_long %>%
+  filter(Postal =="AL" & FIPS %in% c('01005','01011','01017','01019','01061','01063'))
+```
+# change class for amount var
+```{r}
+
+gdp_by_county_long_1 <-gdp_by_county_long_1 %>%
+   mutate(amount=as.integer(amount))
+```
+# insert the col for growth rate
+```{r}
+library(dbplyr)
+gdp_by_county_long_1 <- gdp_by_county_long_1 %>%
+  group_by(Countyname)%>%
+  mutate(Growth=(amount-lag(amount))/lag(amount))
+head(gdp_by_county_long_1)
+```
+
+
+# creating ggplot 
+```{r}
+library(tidyverse)
+library(ggplot2)
+
+gdp_by_county_long_1 %>%
+  ggplot(aes(x=year, y=amount,color=Countyname))+
+  geom_point(size =5, alpha=1)+
+  geom_hline(aes(yintercept=mean(amount)))+
+  theme_minimal()+
+  labs(title ="Alabama- 6 Counties - 2012-2015 GDP")
+```
+
